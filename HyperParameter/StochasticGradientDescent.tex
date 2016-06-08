@@ -1,0 +1,77 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+\title{Stochastic Gradient Descent}
+\begin{document}
+
+\maketitle
+
+Gradient-descent is an optimization technique, suitable for convex as well as non-convex functions. It is an iterative and computational technique.
+
+Let us say we want to minimise the training error of a model. It can be written as the sum of error over all the training samples:
+
+\begin{equation}
+J(D; {\bf w}) = \sum_{i \in D} ({\bf w}.{\bf x}_i - y_i)^2
+\end{equation}
+
+where ${\bf w}$ is the set of parameters of the model and $D$ is the training data. We are interested in finding the best set of $\bf w$ to minimise $J$ (note: $D$ is fixed):
+
+\begin{equation}
+min_{\bf w} J(D; {\bf w})
+\end{equation}
+
+Gradient descent works by selecting $\bf w$ in the $t$-th iteration as:
+
+\begin{equation}
+{\bf w_{t}} = {\bf w_{t - 1}} - \eta {\mathbb E} (\nabla_{\bf w} J)
+\end{equation}
+
+where $\eta$ is a scalar hyperparameter (called learning rate) and ${\mathbb E}(\nabla_{\bf w} J)$ is the expectation of the first-order derivative of $J$ with respect to $\bf w$, summed over all training examples:
+
+\begin{equation}
+\nabla_{\bf w} J = \sum_{i \in D} \nabla_{\bf w} J_i 
+\end{equation}
+
+\begin{align}
+\nabla_{\bf w} J_i &= \frac{\partial}{\partial {\bf w}} ({\bf w}.{\bf x}_i - y_i)^2 \\
+&= 
+\begin{bmatrix}
+&\frac{\partial}{\partial w_1} J_i \\
+&\frac{\partial}{\partial w_2} J_i \\
+&\vdots \\
+&\frac{\partial}{\partial w_m} J_i \\
+\end{bmatrix}
+\end{align}
+
+where ${\bf w}$ is of dimension $m \times 1$.
+
+As an example, let
+
+\begin{equation}
+J(D; w_1, w_2) = \sum_{i \in D}(5 \cdot w_1 \cdot x_1 + 10 \cdot w_2 \cdot x_2  - 15  - y_i)^2 
+\end{equation}
+
+In this case,
+
+\begin{align}
+\nabla_{\bf w} J_i &= 
+\begin{bmatrix}
+& 2 (5 w_1 x_{j1} + 10 w_2 x_{j2} - 15 - y_j)(5 x_{j1}) \\
+& 2 (5 w_1 x_{j1} + 10 w_2 x_{j2} - 15 - y_j)(10 x_{j2}) \\
+\end{bmatrix}
+\end{align}
+
+When the training set is large, computing the gradient over the entire training set becomes computationally expensive. In such a case, we use a stochastic approximation of the gradient. We sum up the gradient over only a small subset of the training set. If we consider only one training sample, this corresponds to online learning. However, for better stability and to take advantage of optimized vectorized operations in programming languages, we take the subset somewhat larger, say 128. 
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{StochasticGradientDescent}
+\end{document}

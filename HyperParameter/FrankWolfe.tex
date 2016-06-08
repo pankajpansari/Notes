@@ -1,0 +1,40 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\title{Frank-Wolfe Algorithm}
+\begin{document}
+\maketitle
+
+Frank-Wolfe (FW) algorithm is an algorithm for optimization of convex functions. It is iterative, computational and needs first-order derivatives. The problem is to:
+
+\begin{equation}
+	min_{{\bf x} \in X} f({\bf x})
+\end{equation}
+
+where $X$ is a compact region. FW works by moving from current point ${\bf x}_n$ along the direction $-\nabla f({\bf x})$ until it hits $X$ and then it backtracks along $-\nabla f({\bf x})$ until the value of $f(x)$ decreases from the current value. In fact, the algorithm also specifies the optimal value of the  step size $\eta_{opt}$.
+
+\begin{algorithm}
+\caption{Frank-Wolfe Algorithm}\label{fw_algo}
+\begin{algorithmic}
+\STATE Select a point ${\bf x}_0 \in X$ 
+\FOR{$n = 1, 2 ..., N$}
+\STATE ${\bf x}_{n + 1} = {\bf x}_{n} - \eta_{n}\nabla f({\bf x}) $ 
+\IF{$f({\bf x}_{n + 1}) \geq f({\bf x}_{n})$}
+\STATE Exit
+\ENDIF
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+\bibliographystyle{plain}
+\end{document}

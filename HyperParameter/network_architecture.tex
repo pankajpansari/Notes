@@ -1,0 +1,59 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+\title{On the Architecture of Convolutional Neural Networks}
+\begin{document}
+\date{}
+
+\maketitle
+
+Searching for the most suitable architecture is as important as learning algorithm improvement for the performance of a convolutional network \cite{jarrett2009best}. This fact was reinforced in \cite{saxe2011random}, where the authors discovered that certain conv net architectures can be inherently frequency selective and translation invariant, even with random weights. They used this observation to do extremely fast architecture search by using random weights to evaluate candidate architectures and concluded that architecture alone accounts significantly for the good performance of state of the art methods.  
+
+Several powerful network architectures have been proposed in literature, which were effectively derived by hand-engineering. Convoluational nets, residual nets and LSTM gates are instances of such novel architectures. It may be possible to come up with such architectures in an automated manner.  
+
+Even when one has a state of the art architecture for a given application, it is often possible to find a simpler and smaller network which achieves same accuracy \cite{iandola2016squeezenet}. The advantage of selecting simpler and smaller architectures is that they need less data to train, have more efficient distributed training and feasible embedded deployment. 
+
+Consider a hierarchy of optimization modules for conv nets. At high level, we have a module which optimises for architecture, the intermediate level, a module optimises for hyperparameters such as learning rate, reg. factor, batch sizes, num of epochs, etc. At the bottom level, is the stochastic gradient descent module which, for a given architecture and choice of hyperparameters, finds good weights. \cite{saxe2011random} suggests we do not even need to optimize the intermediate and bottom modules.
+
+It helps to think that we have CNN microarchitectures (higher level building blocks - say multiple conv layers with fixed organization) and CNN macroarchitecture (big-picture organization of multiple modules into an end-to-end architecture). Depth has been a widely studied CNN macroarchitecture topic. Choice of connections across multiple layers (like ResNet, Highway Networks) is focus of some current research. \cite{iandola2016squeezenet}
+
+Neural nets (including deep and conv NNs) have a large design space, with numerous options for micro and  macro architecture (besides other hyperparametes). A valid question is - how do these factors impact a NN's accuracy (shape of design space). There have been automated approaches for design space exploration (DSE) but they fail to provide intuition about shape of the NN design space (they rather focus on improving accuracy). The automated DSE approaches include bayesian optimization, simulated annealing, randomized search and genetic algorithm. \cite{iandola2016squeezenet}
+
+A good genetic algorithm is NeuroEvolution of Augmenting Topologies (NEAT). It produces efficient, but atypical neural net structures. A good implementation of the algorithm is at \cite{NEATdemo} where it is tested on the data from the TensorFlow playground \cite{tensorflowplay}. In this playground, one can train small NNs in browser for small datasets. It is good to see the effect of changes in number of layers, number of neurons in each layer, type of activation, initial input features. Instead of manual trials, we would a principled approach. The problem is that it is very difficult to scale to larger networks.
+
+Some packages for bayesian hyperparameter optimization are:
+
+\begin{itemize}
+\item Spearmint (Python) \cite{snoek2012practical}
+\item BayesOpt (C++ with Python interface) \cite{martinez2014bayesopt}
+\item hyperopt (Python) \cite{bergstra2013making}
+\item SMAC (Java) \cite{hutter2011sequential}
+\end{itemize}
+
+\cite{iandola2016squeezenet} is a recent work which investigates how CNN architecture decisions influence model size and accuracy.
+
+There are three problems that can be attempted while working on network architecture:
+
+\begin{enumerate}
+\item Simplify an already existing architecture for a given task \newline
+	Say for instance, we are able to find a simpler architecture than the best performing ImageNet work without sacrificing much accuracy. The advantage of simpler architectures is that they have fewer parameters to train and need less data to train.
+\item Alternate novel architectures \newline
+	If we adopt an evolutionary automated method, the result may be an architecture which looks different from proposed existing networks. This can help give us more insights, as well discovery of new building blocks (such as LSTMs). 
+\item Consider the architecture selection as part of the hyperparameter optimization. \newline
+	It does not make any sense to talk about how good an architecture is for a given application without a good choice of corresponding hyperparameters. The performace of an architecture is invariably linked to the choice of hyperparameters. 
+	Bayesian optimization is an excellent framework for hyperparameter selection, since it tries to minimise function evalutions (training of CNNs with one choice of hyperparam is expensive). Why is it then not used by practitioners?
+	One reason is that evaluations are exteremly time-consuming even from the BO point of view. Is there a way to come up with something representative of the generalization error via some proxy measure? Something which would help us eval a candidate more quickly.
+	Other reason is that the dimensionality of the hyperpara. space may be an issue - far too many eval are required to converge to a min. Can be do better? One way would be decoupling the hyperparam. space - assuming that some hyperparam are independent. Another approach can be target propagationa and regularization paths. The manifold in weight space as reg. factor is varied is likely to be smooth, hence we can exploit it using k-function evaluation for diff. values of reg factor since it is cheap.
+\end{enumerate}
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{network_architecture}
+\end{document}

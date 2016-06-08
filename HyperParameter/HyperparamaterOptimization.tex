@@ -1,0 +1,86 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{problem_statement}{Problem Statement}
+\title{Hyperparameter Optimization for Convolutional Networks}
+\begin{document}
+
+\maketitle
+
+Convolutional networks (CNNs) can have a large number of hyperparameters associated with them. These hyperparameters tend to be of one of three types - those related to the learning algorithm, regularization and network architecture. Proper setting of these hyperparameters is crucial for successful generalization. These hyperparameters interact in complex ways, and there is no point of considering them in isolation - for instance, we cannot judge the quality of candidate network architectures without specifying good learning rates for each of them. The large hyperparameter space makes simple search techniques unsuitable. We pose our hyperparameter optimization problem as follows:
+
+\vspace{4mm}
+\subsection*{Problem Statement}
+\textit{
+	We are given a dataset ${\mathcal D}$, a CNN model $\mathit M$ and an objective function $L$ along with a list of hyperparameters with a valid range of values for each. We want to find an assignment for the hyperparameters $\theta_{opt}$ within a given computing budget $\mathcal B$ and time constraint $T$, such that
+	\begin{itemize}	
+		\item $L(\theta_{opt})$ $\ll$ $L(\theta_{random})$, where $\theta_{random}$ are the hyperparameters obtained using random search in time $T$ using $\mathcal B$
+		\item $L(\theta_{opt})$ $<$ $L(\theta_{bo})$, where $\theta_{bo}$ is obtained using the best bayesian optimization algorithm \cite{snoek2015scalable} in time $T$ using $\mathcal B$
+	\end{itemize}
+}
+
+\vspace{4mm}
+\subsection*{Requirements}
+The key requirements of our algorithm are:
+
+\begin{enumerate}
+	\item should work well in high dimensional search space ($\sim$ 100 hyperparam)
+	\item should take advantage of parallel processing 
+	\item should automatically find the necessary transformations required in the hyperparam space (such as log of learning rate, etc.)
+	\item should ideally exhibit behavior similar to gradient descent - large improvements initially and gradual refinements in subsequent iterations
+\end{enumerate}
+
+\vspace{4mm}
+\subsection*{Observations}
+In this regard, here are some observations which can be exploited:
+
+\begin{enumerate}
+	\item The function is not totally black box as assumed by bayesian optimization. Given a fixed architecture, one can write a closed form expression involving repeated matrix multiplications and activation functions.
+	\item Some hyperparameters are more important than others. For some, getting the magnitude correct is good enough. The hyperparameter space can be mapped to a lower dimensional subspace for searching
+	\item If SGD makes most improvement in first few iterations, we need not wait for complete training to evaluate a hyperparam choice 
+
+	\item Gaussian process, which models the black-box function, may not be the best prior. It is know to scale poorly with number of dimensions. 
+\end{enumerate}
+
+\vspace{4mm}
+\subsection*{Papers}
+The papers I found most relevant for our task are:
+
+\begin{enumerate}
+	\item \cite{wang2013bayesian} takes advantage of low effective dimensionality by combining randomization with bayesian optimization. No results for CNNs.
+	\item \cite{snoek2015scalable} tacles large dimensions using NNs as prior instead of GP. Good performance for CIFAR-10 and CIFAR-100, but architecture param not considered
+	\item \cite{maclaurin2015gradient} computes gradient of loss with respect to hyperparameters using reverse-mode differentiation. This allows one to potentially optimize thousands of hyperparameters. Experiments on MNIST and Omniglot dataset. Very promising.
+	\item \cite{swersky2014freeze} use a fast stopping criterion to eliminate bad hyper choices. No CNN results.
+	\item \cite{talathi2015hyper} presents good results for architecture hyperparam optimization but assumes learning hyperparam as constant, which does not seem to be right 
+\end{enumerate}
+
+\vspace{4mm}
+\subsection*{Things to note}
+
+\begin{enumerate}
+\item Within the Bayesian Optimization framework, there are these possiblities of research:
+\begin{enumerate}
+	\item Prior - can be made to scale well to multi-dimension, be better representation of f
+	\item Utility function - not much scope here
+	\item Evaluation of function - can be made faster, approximate
+	\item Parallelization of the sequential BO algorithm
+\end{enumerate}
+\item Decoupling architecture from learning hyperparam is important, otherwise taks becomes very complex. For evaluation, there are possibilities for making fast evaluation of 
+\begin{enumerate}
+	\item Architecture - for eg. by random weights 
+	\item Other Hyperparameters - for eg. by an fast approximate training algorithm
+\end{enumerate}
+\item Prove or disprove the hypothesis that larger than optimal size networks do not hurt performance by very much.
+\end{enumerate}
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{BayesianOptimization}
+\end{document}

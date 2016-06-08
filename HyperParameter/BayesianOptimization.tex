@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{problem_statement}{Problem Statement}
+\title{Bayesian Optimization for Hyperparameter Tuning}
+\begin{document}
+
+\maketitle
+Bayesian optimization (BO) is a derivative-free method to find the minimum or maximum of non-linear functions whose form is unknown (black-box). It is particularly useful for cases when evaluation of function is expensive, since it tries to optimize using as few evaluations as possible. Hence, bayesian optimization is particularly well-suited for hyperparameter tuning of machine learning algorithms in general, and convolutional networks in particular, because evaluation in this case involves training the model and finding the validation error.
+
+Bayesian optimization is based on Bayes' rule. We start with a prior belief of the model $P(\mathcal M)$ of the black box function $f({\bf x})$, choose the best point to evaluate according to some criterion $u(D, {\mathcal M})$, and use the observation to update the posterior model $P({\mathcal M}, D)$. Thus, the algorithm for BO looks like:
+
+\begin{algorithm}
+\caption{Bayesian Optimization Algorithm}\label{bo_algo}
+\begin{algorithmic}
+\STATE Assume a prior $P({\mathcal M})$
+\STATE Select a random point ${\bf x}_1$
+\FOR{$t = 1, 2 ..., N$}
+\STATE Evaluate $y_t = f({\bf x_t})$
+\STATE $D_t = D_{t - 1} \cup \{{\bf x}_t, y_t\}$
+\STATE Revise posterior $P({\mathcal M}/D_t)$
+\STATE ${\bf x}_{t + 1} = \textrm{ argmax}_{\bf x} u({\bf x} | D_t, {\mathcal M})$ 
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Two important choices to be made are: (i) the prior $P(\mathcal M)$, and (ii) the utility function $u({\bf x} | D_t, {\mathcal M})$. The choice of a good prior is crucial to the good performance of bayesian optimization. Since $f({\bf x})$ is unknown, it is quite possible that the prior we choose may be either quite weak or may make unjustified strong assumptions about $f({\bf x})$. Nevertheless, we want our prior to model our belief that $f({\bf x})$ is smooth.
+
+One widely used prior is Gaussian process (GP). It may not be the best or the easiest prior to use for an application, but in cases where it is used great care has to be taken in selecting the hyperparameters of the GP. It can be thought of as a distribution over functions.
+
+A GP has a property that if $P(f x_1)$ is gaussian, a set of $n$ points ${\bf x}_1, {\bf x}_2 ... {\bf x}_n$ forms a gaussian distribution 
+
+A GP is a natural generalization of gaussian probability distributions. Instead of a probability distribution over one or more random variables, a GP specifies distribution over functions. It is non-parametric. We do not usually give a long list of input-output vector and ask the GP what is the probability of this function. Instead, we query GP for a point $\bf x$ and ask it to do inference over all possible functions. This can be done elegentaly and in closed form for GP, and results in the mean value and the variance at $\bf x$.
+
+A GP can also be thought of as a collection of random variables, any finite number of which have a joint Gaussian distribution.
+
+
+A GP is completely specified by its mean function and covariance function. The mean function $m({\bf x})$ and the covariance function $k({\bf x, x'})$ of a real-valued process $f({\bf x})$ are defined as follows:
+
+\begin{equation}
+m({\bf x}) = E[f({\bf x})]
+\end{equation}
+
+\begin{equation}
+k({\bf x, x'}) = E[(f({\bf x}) - m({\bf x}))(f({\bf x'}) - m({\bf x'}))]
+\end{equation}
+
+
+A GP starts off with a prior, usually a mean function, which is zero everywhere and a covariance function. The latter captures our belief about the stationarity and smoothness of the functions. The values of the parameters of a GP reflect how smooth the functions will be. In fact, these parameter values can be learned.
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{BayesianOptimization}
+\end{document}

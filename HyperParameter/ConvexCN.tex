@@ -1,0 +1,48 @@
+\documentclass{article}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{url}
+\newtheorem{mydef}{Definition}
+\newtheorem{prop}{Property}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{problem_statement}{Problem Statement}
+\title{An Incremental Approach to Optimize Convolutional Network Architecture}
+\begin{document}
+
+\maketitle
+
+Given a dataset, cost function and regularization term, we want to learn the number of convolutional layers, number of filters in each layer, filter size and pooling size of each filter, and the weights corresponding to each filter and the output layer. The basic structure of our network is:
+
+Input -\textgreater [Convolution -\textgreater ReLU -\textgreater Max Pooling] -\textgreater ..... -\textgreater [Convolution - \textgreater ReLU -\textgreater Max Pooling] -\textgreater Output
+
+First of all, let us assume that we have only one convolutional layers and consider the problem of adding filters incrementally to this layer. Also assume that we have a subroutine FindBestFilterPoolSize($i$) which takes as input the index $i$ of a filter in this layer and returns the optimum filter size $f_i$ and max-pool size $p_i$ for the $i$-th filter.
+
+Let $X \in R^{n \times n}$ be the input matrix (assume square) and $y \in R$ be a scalar output. Let $V_i \in R^{f \times f}$ be the shared matrix for the $i$-th filter in the first layer having a filter size of $f$. The output of the filter is a matrix $Z_i = V_i * X \in R^{n \times n}$. ReLU here corresponds to the function $y = max(0, x)$ where $y, x \in R$. Let us denote element-wise ReLU operation on a matrix $A$ by $s(A)$. If the pool size is $p$, we assume the stride is $p$ (non-overlapping). The output of max-pooling for input $Z_i \in R^{n \times n}$ is denoted by $POOL(Z_i) \in R^{n/p \times n/p}$. The output matrix for pooling corresponding to $i$-th filter is denoted by $W_i$.
+
+\begin{algorithm}
+\caption{{\bf IncrementalCNN}}\label{incremental_algo}
+\begin{algorithmic}
+\STATE {\bf Input:} Training dataset $D = \{(X_1, y_1), \dots, (X_n, y_n)\}$, convex loss function $Q$, and scalar regularization penalty $\lambda$. $s$ is ReLU
+\STATE $f_1, p_1$ = FindBestFilterPoolSize(1)
+\STATE Select $V_1$ to some initial value and select $W_1 = argmin_{W1} \sum_t Q(W_1.POOL(s(V_1 * X)), y_t) + \lambda |W_1|$
+\FOR{$i = 2,3 .., $}
+\STATE Let $q_t = Q'(\sum_{j = 1}^{i - 1} W_j . POOL(s(V_j * X), y_t)$ 
+\STATE $f_i, p_i$ = FindBestFilterPoolSize($i$)
+\STATE Select best $V_i$ by maximizing $\sum_{t} q_t POOL(s(V_i * X))$ using BCFW
+\STATE If $\sum_{t} q_t POOL(s(V_i * X)) < \lambda$, {\bf stop}
+\STATE Select $W_1, ...., W_i$ by minimizing $C =  \sum_t Q(\sum_{j = 1}^{i} W_j . POOL(s(V_j * X)), y_t) + \lambda \sum_{j = 1}^{i}|W_j|$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{BayesianOptimization}
+\end{document}

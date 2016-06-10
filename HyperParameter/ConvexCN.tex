@@ -11,12 +11,191 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}{Proposition}
 \newtheorem{problem_statement}{Problem Statement}
-\title{An Incremental Approach to Optimize Convolutional Network Architecture}
+\title{Convex Multi-layer Neural Networks}
 \begin{document}
 
 \maketitle
 
-Given a dataset, cost function and regularization term, we want to learn the number of convolutional layers, number of filters in each layer, filter size and pooling size of each filter, and the weights corresponding to each filter and the output layer. The basic structure of our network is:
+We will start with some discussion of gradient-boosting algorithm which will lead us nicely to convex neural networks. We will extend the algorithm of convex neural networks to filters and to multiple layers.
+
+\section{Gradient-boosting algorithm}
+\label{sec:grad_boosting}
+We assume our function approximator to be of the form:
+
+\begin{equation}
+	F({\bf x}) = \beta_1 h_1({\bf x, a_1}) + \beta_2 h_2({\bf x, a_2}) + \dots + \beta_M h_M({\bf x, a_m})  
+\end{equation}
+
+The principle idea behind gradient-boosting algorithm is to learn the base-learners greedily, at each step selecting the base-learner which correlates best with the negative gradient of the errors. This is like gradient-descent - instead of adding parameter update in the classical case, here we are adding function update (under the constraint that the base-learner is of certain parametric form).
+
+\begin{algorithm}
+\caption{{\bf GradientBoosting} \cite{friedman2001greedy}}\label{algo:gradient_boosting}
+\begin{algorithmic}[1]
+\STATE {\bf Input:} A loss function $Q$, the form of base learners $h_{i}({\bf x, a})$, number of iterations $M$
+\STATE Select ${\bf a}_1$ randomly 
+\STATE $\beta_1 = argmin_{\beta}  \sum_{j = 1}^{N} (- g_1({\bf x_j}) - \beta h_1({\bf x_j;a_1}))^2$
+\STATE Set $F_1({\bf x}) = \beta_1 h_1({\bf x, a_1})$
+\FOR{$m = 2,3 .., M$}
+\STATE Calculate $-{\bf g}_m({\bf x}) = - \frac{\partial Q(y, F{\bf(x)}}{\partial F{\bf(x)}}|_{F({\bf x}) = F_m({\bf x})}$
+\STATE ${\bf a}_m$ = $argmin_{{\bf a}, \beta} \sum_{j = 1}^{N} (- g_m({\bf x_j}) - \beta h_m({\bf x_j;a}))^2$
+\STATE $\beta_m = argmin_{\beta}  \sum_{j = 1}^{N} (- g_m({\bf x_j}) - \beta h_m({\bf x_j;a_m}))^2$
+\STATE Set $F_m({\bf x}) = F_{m - 1}({\bf x}) + \beta_m h_m({\bf x, a_m})$
+\ENDFOR
+\STATE Return $F({\bf x}) = \sum_{j = 1}^{M} \beta_j h_j({\bf x, a_j})$
+\end{algorithmic}
+\end{algorithm}
+
+Note that after the selection of $h_m({\bf x; a})$, when only $\beta_m$ is optimized (as in above), the algorithm is called greedy "stagewise" approach. A less greedy approach is to optimize $\beta_1, \dots, \beta_m$ at the $m$-th iteration. This less greedy approach is called a "stepwise" approach.   
+
+\section{Convex Neural Networks}
+
+We are now in a position to discuss the algorithm (referred to as ConvexNN here) stated in \cite{bengio2005convex}. ConvexCNN uses the gradient-boosting approach to build a one hidden-layer NN in a greedy "stepwise" manner. In this case, a neuron corresponds to the base learner $h_m({\bf x; a})$ in section~\ref{sec:grad_boosting}. Given a dataset, a loss function and a regularization factor, the algorithm returns a network with an optimum number of nodes in the hidden layer and the set of weights (input to hidden layer, hidden layer to output).
+
+\begin{algorithm}
+\caption{{\bf ConvexNN}}\label{algo:ConvexNN}
+\begin{algorithmic}[1]
+\STATE {\bf Input:} Training dataset $D = \{({\bf x_1}, y_1), \dots, ({\bf x_n}, y_n)\}$, convex loss function $Q$, and scalar regularization penalty $\lambda$. $s$ is some non-linear activation function 
+\STATE Select ${\bf v_1}$ to some initial value and select $w_1 = argmin_{w1} \sum_t Q(w_1.s({\bf v}_1 * {\bf x}_t), y_t) + \lambda |w_1|^2$
+\FOR{$i = 2,3 .., $}
+\STATE Let $q_t = \frac{\partial Q(y, y_t)}{\partial y}|_{\bf x = x_t}$ where $y = \sum_{j = 1}^{i - 1} w_j . s({\bf v_j} \cdot \bf{x})$
+\STATE Select best ${\bf v_i}$ by maximizing $\sum_{t} q_t s({\bf v}_i \cdot {\bf x}_t) - \lambda ||{\bf v_i}||^2$ 
+\STATE If $\sum_{t} q_t s(v_i \cdot {\bf x}_t) - \lambda ||{\bf v_i}||^2 < threshold$, {\bf stop}
+\STATE Select $w_1, ...., w_i$ by minimizing $C =  \sum_t Q(\sum_{j = 1}^{i} w_j \cdot s({\bf v}_j \cdot {\bf x}_t), y_t) + \lambda \sum_{j = 1}^{i}|w_j|^2$
+\ENDFOR
+\STATE Return the predictor $\hat{y}({\bf x}) = \sum_{j = 1}^{i} w_j \cdot h_j({\bf x})$ 
+\end{algorithmic}
+\end{algorithm}
+
+Note that (7) in algorithm~\ref{algo:ConvexNN} is convex optimization in $w_1, \dots, w_i$. This is because the first term $Q$ is taken to be convex in $y$, which is linear combination of weights. The second term is also convex in weights (each term has double derivative $>$ 0 since $\lambda$ is taken to be positive).
+
+It is instructive to note that (5) tries to select the ${\bf v}_i$ which maximises the (expected) correlation between $q$ and $s({\bf v}_i, {\bf x})$. Let $\mu(X)$ represent the mean of r.v $X$ and $\sigma(X)$ represent its standard deviation. Correlation is defined as:
+
+\begin{align}
+corr(X, Y) &= \frac{cov(X, Y)}{\sigma(X)\sigma(Y)} \\
+	&= \frac{E[(X - \mu(X))(Y - \mu(Y))]}{\sigma(X)\sigma(Y)} \\
+	&= \frac{E[XY] - \mu(X)\mu(Y)}{\sigma(X)\sigma(Y)} 
+\end{align}  
+
+Using above:
+
+\begin{align}
+\label{eq:correlation}
+corr(q, s({\bf v}_i, {\bf x})) &= \frac{E[q \cdot s({\bf v}_i, {\bf x})] - \mu(q)\mu(s({\bf v}_i, {\bf x}))}{\sigma(q)\sigma(s({\bf v}_i, {\bf x}))} 
+\end{align}  
+
+In step (5) of algorithm \ref{algo:ConvexNN}, the objective function represents the above correlation (approximately). The first term corresponds to $E[q \cdot s({\bf v}_i, {\bf x})]$ and the second term is a proxy for $\mu(s({\bf v}_i, {\bf x}))$. Note that if $s()$ is tanh or sign activation, the output is between 1 and -1, so the regularizer term is not required. Another way to think is that there are many  ${\bf v}_i$ which can make $\mu(s({\bf v}_i, {\bf x}))$ parallel to $q$ and we want ${\bf v}_i$ of small magnitude. Also observe that this objective of correlation maximization is different from the least squares based criterion in step (7) of algorithm \ref{algo:gradient_boosting}. It needs to be seen which optimization is easier in practice.
+
+\section{Difference of Convex Programming}
+
+Some non-convex functions can be decomposed into difference of convex functions (what is the characterization of this class?). To solve the minimization problem for such non-convex functions, we can linearize the concave part at a particular point, minimize the resulting convex overestimate (convex + linear), move to the minima and linearize the concave function at this point again. The algorithm continues iteratively until the improvement is very small.
+
+\begin{algorithm}
+\caption{{\bf Difference of Convex Programming}}\label{algo:dc_programming}
+\begin{algorithmic}[1]
+\STATE {\bf Input:} $f({\bf x})$, number of iterations $N$, stopping threshold $\lambda$
+\STATE Decompose $f({\bf x}) = g({\bf x}) + h({\bf x})$ where $g({\bf x})$ is convex and $h({\bf x})$ is concave
+\STATE Select a starting point $\bf x_0$ 
+\FOR{$i = 1, 2 .. $}
+\STATE Linearize $h({\bf x})$ by $h_i({\bf x})= h({\bf x}_i) + \nabla h({\bf x})|_{\bf x = x_i}^T ({\bf x} - {\bf x_i})$
+\STATE Set ${\bf x}_i = argmin_{{\bf x}} g({\bf x}) + h_i({\bf x})$ by solving the convex optimization problem
+\STATE If $f({\bf x_{i - 1}}) - f({\bf x_i}) < \lambda$, {\bf stop}
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
+
+Consider the objective function in (6) of algorithm \ref{algo:dc_programming}:
+
+\begin{equation}
+f_i({\bf x}) = g({\bf x}) - h_i({\bf x})
+\end{equation}
+
+$f_i({\bf x})$ is a convex function (difference of convex and linear functions). Moreover $f_i({\bf x})$ is a global overestimate of $f({\bf x})$, because $h_i({\bf x})$, being tangent at ${\bf x}_i$, is an overestimate of $h({\bf x})$ globally. If $f_i({\bf x})$ is of the following form, then it can be minimized using efficient algorithms like block-coordinate frank-wolfe (BCFW):
+
+\begin{equation}
+min_{\bf w} \frac{1}{N} \sum_{i = 1}^{N} max_j ({\bf a}_{ij}^T{\bf w} + b_{ij}) + \frac{\lambda}{2} ||{\bf w}||^2
+\end{equation}
+
+The above is a convex function. Pointwise maximum of linear functions is convex. Positive weighted sum of convex functions is convex. Hence, first term is convex. Second term is convex since $||W||^2$ can be thought of as $u^T \cdot W \cdot v$ (where $u$ and $v$ are vectors of 1s of appropriate dim) and $\lambda > 0$.
+
+Consider the objective function of (5) of algorithm \ref{algo:ConvexNN}:
+
+\begin{equation}
+max_{{\bf v}} \sum_{t} q_t \cdot s({\bf v}.{\bf x}_t) - \lambda ||{\bf v}||^2
+\end{equation}
+
+Let us rewrite the above as:
+
+\begin{equation}
+min_{{\bf v}} \sum_{t} q'_t \cdot s({\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2
+\end{equation}
+
+where $q'_t = -q_t$. Let
+
+\begin{equation}
+Q = \sum_t (\hat{y}_t - y_t)^2 + \lambda ||W||^2
+\end{equation}
+
+where $\hat{y}_t$ is the true response for the $t$-th example and $y_t$ is the predicted response. We have:
+
+\begin{equation}
+q_t' =  \frac{\partial Q}{\partial y}|_{y = y_t} = \sum_t 2 \cdot (\hat{y}_t - y_t)
+\end{equation}
+
+Let us restrict the activation function to be $s(x) = max(0, x)$ because of its convex piecewise linear nature. The objective function becomes:
+
+\begin{align}
+f({\bf v}) &= \sum_{t} q'_t \cdot max(0, {\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2 \\
+&= \sum_{t: q'_t > 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2 +  \sum_{t: q'_t \leq 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t) \\
+&= g({\bf v}) + h({\bf v})
+\end{align}
+
+where $g({\bf v}) = \sum_{t: q'_t > 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2 $ is convex and $h({\bf v}) = \sum_{t: q'_t \leq 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t)$ is concave. As an aside, note that checking sign of $q'_t$ is easy - just check if $\hat{y}_t > y_t$. Let us linearize $h({\bf v})$ at a given point ${\bf v}_i$:
+
+\begin{align}
+h_i({\bf v})= h({\bf v}_i) + \nabla h({\bf v})|_{\bf v = v_i}^T ({\bf v} - {\bf v_i})
+\end{align}
+
+where
+
+\begin{align}
+\nabla h({\bf v}) &= \frac{\partial h}{\partial {\bf (v\cdot x)}} \cdot \frac{\partial{\bf (v\cdot x)}}{\partial {\bf v}} \\
+\end{align}
+
+\begin{align}
+\frac{\partial h}{\partial {\bf (v\cdot x)}} = 
+\begin{cases}
+0 & if {\bf v\cdot x} < 0 \\
+1 & if {\bf v\cdot x} > 0 \\
+\end{cases} 
+\end{align}
+
+Hence, 
+
+\begin{align}
+\nabla h({\bf v})|_{\bf v = v_i} =
+\begin{cases}
+0 & if {\bf v_i \cdot x} < 0 \\
+{\bf x} & if {\bf v_i \cdot x} > 0 \\
+\end{cases} 
+\end{align}
+
+Given the dataset, we can compute the expectation of $\nabla h({\bf v})|_{\bf v = v_i}$ over ${\bf x}$, i.e, $E_{{\bf x}_t, q'_t < 0}(\nabla h({\bf v})|_{\bf v = v_i})$. The convex function to be minimised now becomes:
+
+\begin{align}
+f_i({\bf v}) = \sum_{t: q'_t > 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2 + h({\bf v}_i) + \nabla h({\bf v})|_{\bf v = v_i}^T ({\bf v} - {\bf v_i})
+\end{align}
+
+Removing the constant terms:
+
+\begin{align}
+f'_i({\bf v}) = \sum_{t: q'_t > 0} q'_t \cdot max(0, {\bf v}.{\bf x}_t) + \lambda ||{\bf v}||^2 + (\nabla h({\bf v})|_{\bf v = v_i}^T) {\bf v}
+\end{align}
+
+The above objective function is composed of quadratic and linear terms in ${\bf v}$ and there exists quadratic convex programming algorithms to minimise it efficiently.
+
+\section{Incremental Algorithm for CNN}
+
+In this section, we extend ConvexNN to convoluational neural networks. Instead of adding one neuron at a time, we add one filter greedily in this case. Given a dataset, cost function and regularization term, we want to learn the number of convolutional layers, number of filters in each layer, filter size and pooling size of each filter, and the weights corresponding to each filter and the output layer. The basic structure of our network is:
 
 Input -\textgreater [Convolution -\textgreater ReLU -\textgreater Max Pooling] -\textgreater ..... -\textgreater [Convolution - \textgreater ReLU -\textgreater Max Pooling] -\textgreater Output
 
@@ -40,9 +219,9 @@ Let $X \in R^{n \times n}$ be the input matrix (assume square) and $y \in R$ be 
 \end{algorithmic}
 \end{algorithm}
 
-
+\section{Experiments}
 
 \newpage
 \bibliographystyle{plain}
-\bibliography{BayesianOptimization}
+\bibliography{ConvexCN}
 \end{document}

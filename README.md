@@ -1,2 +1,2 @@
-# Dissertation
-A draft version of my dissertation
+# Notes
+Notes on Optimization and Machine Learning from my reading
